@@ -18,6 +18,9 @@ let activeInfoTrigger = null;
 let currentPoints = [];
 let chartGeom = null;
 let hoverIndex = null;
+let simPoints = [];
+let simGeom = null;
+let simHoverIndex = null;
 
 function hideHeaderTooltip() {
   if (!headerTooltip) return;
@@ -174,12 +177,14 @@ function drawLineChart(points, highlightPointIndex = null) {
   }
 }
 
-function drawSimChart(points) {
+function drawSimChart(points, highlightPointIndex = null) {
   if (!simCanvas) return;
   const ctx = simCanvas.getContext("2d");
   const width = simCanvas.width;
   const height = simCanvas.height;
   ctx.clearRect(0, 0, width, height);
+  simPoints = points || [];
+  simGeom = null;
 
   if (!points || points.length === 0) {
     ctx.fillStyle = "#a7b3c4";
@@ -196,10 +201,11 @@ function drawSimChart(points) {
   const plotH = height - padTop - padBottom;
   const stepX = plotW / Math.max(1, points.length - 1);
 
-  const equities = points.flatMap((p) => [Number(p.equity), Number(p.benchmark_equity)]);
+  const equities = points.map((p) => Number(p.equity));
   const min = Math.min(...equities);
   const max = Math.max(...equities);
   const span = Math.max(0.01, max - min);
+  simGeom = { padLeft, padRight, padTop, padBottom, plotW, plotH, min, max, span, stepX, width, height };
 
   ctx.strokeStyle = "#364458";
   ctx.lineWidth = 1;
@@ -241,29 +247,36 @@ function drawSimChart(points) {
   };
 
   const yAi = (p) => padTop + ((max - Number(p.equity)) / span) * plotH;
-  const yBench = (p) => padTop + ((max - Number(p.benchmark_equity)) / span) * plotH;
   const aiUp = Number(points[points.length - 1].equity) >= Number(points[0].equity);
   const aiColor = aiUp ? "#31e3a5" : "#ff7d92";
   drawSeries(aiColor, yAi);
-  drawSeries("#8fa3bf", yBench);
 
   const endX = padLeft + stepX * (points.length - 1);
   const aiEndY = yAi(points[points.length - 1]);
-  const benchEndY = yBench(points[points.length - 1]);
   ctx.fillStyle = aiColor;
   ctx.beginPath();
   ctx.arc(endX, aiEndY, 5, 0, Math.PI * 2);
   ctx.fill();
-  ctx.fillStyle = "#8fa3bf";
-  ctx.beginPath();
-  ctx.arc(endX, benchEndY, 5, 0, Math.PI * 2);
-  ctx.fill();
 
-  ctx.fillStyle = "#d7e2f0";
-  ctx.font = `13px ${CHART_FONT_STACK}`;
-  ctx.fillText("Benchmark", padLeft + 6, padTop + 14);
   ctx.fillStyle = aiColor;
-  ctx.fillText("My Portfolio", padLeft + 96, padTop + 14);
+  ctx.font = `13px ${CHART_FONT_STACK}`;
+  ctx.fillText("My Portfolio", padLeft + 6, padTop + 14);
+
+  if (highlightPointIndex !== null && highlightPointIndex >= 0 && highlightPointIndex < points.length) {
+    const hp = points[highlightPointIndex];
+    const x = padLeft + stepX * highlightPointIndex;
+    const y = yAi(hp);
+    ctx.strokeStyle = "rgba(138, 245, 205, 0.42)";
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(x, padTop);
+    ctx.lineTo(x, height - padBottom);
+    ctx.stroke();
+    ctx.fillStyle = "#dcfff2";
+    ctx.beginPath();
+    ctx.arc(x, y, 5.4, 0, Math.PI * 2);
+    ctx.fill();
+  }
 }
 
 async function loadSimulation() {
@@ -274,38 +287,80 @@ async function loadSimulation() {
     const sim = await res.json();
     const pnl = Number(sim.ending_capital) - Number(sim.initial_capital);
     const winning = pnl >= 0;
-    const benchmarkPnl = Number(sim.benchmark_ending_capital) - Number(sim.initial_capital);
-    const benchmarkWinning = benchmarkPnl >= 0;
     simKpis.innerHTML = "";
     [
       `My Portfolio: ${winning ? "WINNING" : "LOSING"}`,
-      `Benchmark: ${benchmarkWinning ? "WINNING" : "LOSING"}`,
       `Start: $${Number(sim.initial_capital).toFixed(2)}`,
       `My Portfolio: $${Number(sim.ending_capital).toFixed(2)}`,
       `${winning ? "Profit" : "Loss"}: ${winning ? "+" : "-"}$${Math.abs(pnl).toFixed(2)}`,
       `Gain/Loss %: ${Number(sim.total_return_pct).toFixed(2)}%`,
-      `Benchmark Value: $${Number(sim.benchmark_ending_capital).toFixed(2)}`,
-      `${benchmarkWinning ? "Benchmark Profit" : "Benchmark Loss"}: ${benchmarkWinning ? "+" : "-"}$${Math.abs(benchmarkPnl).toFixed(2)}`,
-      `Benchmark Gain/Loss %: ${Number(sim.benchmark_return_pct).toFixed(2)}%`,
       `Days Traded: ${sim.days_traded}`,
       `Win/Loss Days: ${sim.win_days}/${sim.loss_days}`,
       `Max Drawdown: ${Number(sim.max_drawdown_pct).toFixed(2)}%`,
     ].forEach((t, i) => {
       const span = document.createElement("span");
       span.className = "audit-badge";
-      if (i === 0 || i === 3 || i === 4 || i === 5) {
+      if (i === 0 || i === 2 || i === 3 || i === 4) {
         span.classList.add(winning ? "positive" : "negative");
-      }
-      if (i === 1 || i === 6 || i === 7 || i === 8) {
-        span.classList.add(benchmarkWinning ? "positive" : "negative");
       }
       span.textContent = t;
       simKpis.appendChild(span);
     });
+    simHoverIndex = null;
     drawSimChart(sim.points || []);
   } catch {
     simKpis.innerHTML = '<span class="audit-badge">Need more history to display portfolio performance.</span>';
-    drawSimChart([]);
+    simHoverIndex = null;
+    drawSimChart([], null);
+  }
+}
+
+function simCanvasMouseToLocal(event) {
+  const rect = simCanvas.getBoundingClientRect();
+  return {
+    x: (event.clientX - rect.left) * (simCanvas.width / rect.width),
+    y: (event.clientY - rect.top) * (simCanvas.height / rect.height),
+  };
+}
+
+function onSimChartHover(event) {
+  if (!simGeom || !simPoints.length || !chartHover) return;
+  const { x, y } = simCanvasMouseToLocal(event);
+  const inPlotX = x >= simGeom.padLeft && x <= simGeom.width - simGeom.padRight;
+  const inPlotY = y >= simGeom.padTop && y <= simGeom.height - simGeom.padBottom;
+  if (!inPlotX || !inPlotY) {
+    if (simHoverIndex !== null) {
+      simHoverIndex = null;
+      drawSimChart(simPoints, null);
+    }
+    hideChartHover();
+    return;
+  }
+
+  const idx = Math.max(
+    0,
+    Math.min(
+      simPoints.length - 1,
+      Math.round((x - simGeom.padLeft) / Math.max(1, simGeom.stepX))
+    )
+  );
+  if (simHoverIndex !== idx) {
+    simHoverIndex = idx;
+    drawSimChart(simPoints, simHoverIndex);
+  }
+
+  const point = simPoints[idx];
+  chartHover.textContent = `${point.date} | $${Number(point.equity).toFixed(2)}`;
+  chartHover.hidden = false;
+  chartHover.style.left = `${event.clientX + 12}px`;
+  chartHover.style.top = `${event.clientY - 8}px`;
+}
+
+function onSimChartLeave() {
+  hideChartHover();
+  if (simHoverIndex !== null) {
+    simHoverIndex = null;
+    drawSimChart(simPoints, null);
   }
 }
 
@@ -453,6 +508,11 @@ if (rows.length > 0) {
 if (canvas) {
   canvas.addEventListener("mousemove", onChartHover);
   canvas.addEventListener("mouseleave", onChartLeave);
+}
+
+if (simCanvas) {
+  simCanvas.addEventListener("mousemove", onSimChartHover);
+  simCanvas.addEventListener("mouseleave", onSimChartLeave);
 }
 
 infoTriggers.forEach((trigger) => {
