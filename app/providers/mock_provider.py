@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, timedelta
 import hashlib
 import random
 
@@ -7,6 +7,8 @@ from app.providers.catalog import CS2_SKIN_CATALOG
 
 
 class MockMarketDataProvider(MarketDataProvider):
+    supports_historical = True
+
     def fetch_daily_ticks(self, for_date: date) -> list[SkinMarketTick]:
         ticks: list[SkinMarketTick] = []
         ordinal = for_date.toordinal()
@@ -35,4 +37,12 @@ class MockMarketDataProvider(MarketDataProvider):
                     volume_24h=volume,
                 )
             )
+        return ticks
+
+    def fetch_history_ticks(self, days: int) -> list[SkinMarketTick]:
+        days = max(1, days)
+        start = date.today() - timedelta(days=days - 1)
+        ticks: list[SkinMarketTick] = []
+        for i in range(days):
+            ticks.extend(self.fetch_daily_ticks(start + timedelta(days=i)))
         return ticks

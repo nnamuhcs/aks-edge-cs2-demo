@@ -11,6 +11,7 @@ const canvas = document.getElementById("price-chart");
 const infoTriggers = Array.from(document.querySelectorAll(".info-trigger"));
 const headerTooltip = document.getElementById("header-tooltip");
 const chartHover = document.getElementById("chart-hover");
+const CHART_FONT_STACK = "\"Avenir Next\", \"Segoe UI\", sans-serif";
 
 let activeInfoTrigger = null;
 let currentPoints = [];
@@ -67,7 +68,7 @@ function drawLineChart(points, highlightPointIndex = null) {
 
   if (!points || points.length === 0) {
     ctx.fillStyle = "#a7b3c4";
-    ctx.font = "22px IBM Plex Sans";
+    ctx.font = `22px ${CHART_FONT_STACK}`;
     ctx.fillText("No price history available", 40, 74);
     if (chartMeta) chartMeta.textContent = "No historical data for this skin yet.";
     return;
@@ -92,7 +93,7 @@ function drawLineChart(points, highlightPointIndex = null) {
   ctx.strokeStyle = "#364458";
   ctx.lineWidth = 1;
   ctx.fillStyle = "#b8c8da";
-  ctx.font = `${Math.round(16 * scale)}px IBM Plex Sans`;
+  ctx.font = `${Math.round(16 * scale)}px ${CHART_FONT_STACK}`;
 
   for (let i = 0; i <= 4; i += 1) {
     const y = padTop + (plotH * i) / 4;
@@ -124,7 +125,7 @@ function drawLineChart(points, highlightPointIndex = null) {
   });
 
   ctx.fillStyle = "#a7b8cb";
-  ctx.font = `${Math.round(14 * scale)}px IBM Plex Sans`;
+  ctx.font = `${Math.round(14 * scale)}px ${CHART_FONT_STACK}`;
   ctx.fillText("Price (USD)", 12, 24);
   ctx.fillText("Date", width - 52, height - 12);
 
