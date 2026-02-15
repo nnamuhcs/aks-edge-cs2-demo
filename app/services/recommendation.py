@@ -128,12 +128,41 @@ def build_recommendations(db: Session, limit: int = 5) -> list[Recommendation]:
     for idx, rec in enumerate(recs, start=1):
         rec.rank = idx
         rec.total_candidates = total
-        momentum_note = "strong momentum" if rec.momentum_7d_pct >= 0 else "negative momentum"
-        volatility_note = "controlled volatility" if rec.volatility_7d_pct <= 8 else "elevated volatility"
-        liquidity_note = "high liquidity" if rec.liquidity_score >= 50 else "lower liquidity"
+        if rec.momentum_7d_pct >= 12:
+            momentum_note = "very strong momentum"
+        elif rec.momentum_7d_pct >= 5:
+            momentum_note = "solid positive momentum"
+        elif rec.momentum_7d_pct >= 0:
+            momentum_note = "modest positive momentum"
+        else:
+            momentum_note = "negative momentum"
+
+        if rec.volatility_7d_pct <= 4:
+            volatility_note = "low volatility"
+        elif rec.volatility_7d_pct <= 8:
+            volatility_note = "controlled volatility"
+        else:
+            volatility_note = "elevated volatility"
+
+        if rec.liquidity_score >= 2:
+            liquidity_note = "high liquidity"
+        elif rec.liquidity_score >= 1:
+            liquidity_note = "medium liquidity"
+        else:
+            liquidity_note = "lower liquidity"
+
+        confidence_note = (
+            "high confidence"
+            if rec.confidence >= 0.75
+            else "medium confidence"
+            if rec.confidence >= 0.5
+            else "lower confidence"
+        )
+        thesis_note = rec.thesis or "Selected for factor balance across trend, risk, and tradability."
         rec.reason = (
-            f"Rank #{idx}/{total}: {momentum_note}, {volatility_note}, and {liquidity_note}. "
-            f"Composite includes momentum, mean-reversion, and risk controls; non-top skins have weaker balance."
+            f"Momentum {rec.momentum_7d_pct:.2f}%, volatility {rec.volatility_7d_pct:.2f}%, liquidity {rec.liquidity_score:.2f}: "
+            f"{momentum_note}, {volatility_note}, {liquidity_note}, {confidence_note}. "
+            f"Thesis: {thesis_note}"
         )
 
     return recs[:limit]

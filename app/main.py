@@ -1,5 +1,6 @@
 from datetime import date
 from pathlib import Path
+import shutil
 import urllib.parse
 from typing import Union
 
@@ -16,9 +17,10 @@ from app.config import settings
 from app.database import Base, SessionLocal, engine, ensure_schema_columns, get_db
 from app.models import PriceSnapshot, Skin
 from app.providers.catalog import CS2_SKIN_CATALOG
-from app.schemas import PriceSnapshotRead, RecommendationRead, SkinRead
+from app.schemas import PortfolioSimRead, PriceSnapshotRead, RecommendationRead, SkinRead
 from app.services.provider_factory import build_provider
 from app.services.recommendation import build_recommendations
+from app.services.simulation import simulate_ai_portfolio
 from app.services.tracker import (
     backfill_history,
     backfill_seed_data,
@@ -40,8 +42,27 @@ def _listing_url(name: str) -> str:
     return f"https://steamcommunity.com/market/listings/730/{urllib.parse.quote(name, safe='')}"
 
 
+def _bootstrap_seed_database_if_missing() -> None:
+    if not settings.database_url.startswith("sqlite:///"):
+        return
+
+    raw_path = settings.database_url.replace("sqlite:///", "", 1)
+    db_path = Path(raw_path) if raw_path.startswith("/") else (base_dir / raw_path)
+    if db_path.exists():
+        return
+
+    seed_candidates = [base_dir / "seed" / "skins.db", base_dir / "data" / "skins.db"]
+    seed_path = next((p for p in seed_candidates if p.exists()), None)
+    if not seed_path:
+        return
+
+    db_path.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(seed_path, db_path)
+
+
 @app.on_event("startup")
 def startup() -> None:
+    _bootstrap_seed_database_if_missing()
     Base.metadata.create_all(bind=engine)
     ensure_schema_columns()
     db = SessionLocal()
@@ -179,6 +200,18 @@ def skin_history(skin_id: int, db: Session = Depends(get_db)) -> list[PriceSnaps
 @app.get("/recommendations", response_model=list[RecommendationRead])
 def recommendations(limit: int = 5, db: Session = Depends(get_db)) -> list[RecommendationRead]:
     return [RecommendationRead(**vars(r)) for r in build_recommendations(db, limit=max(1, min(20, limit)))]
+
+
+@app.get("/simulation/ai-portfolio", response_model=PortfolioSimRead)
+def ai_portfolio_simulation(
+    initial_capital: float = 8000.0, top_n: int = 5, db: Session = Depends(get_db)
+) -> PortfolioSimRead:
+    result = simulate_ai_portfolio(db, initial_capital=max(1000.0, min(initial_capital, 250000.0)), top_n=top_n)
+    if result is None:
+        raise HTTPException(status_code=404, detail="Not enough historical data to run simulation")
+    payload = vars(result).copy()
+    payload["points"] = [vars(p) for p in result.points]
+    return PortfolioSimRead(**payload)
 
 
 @app.get("/audit/summary")

@@ -5,3 +5,4 @@ __pycache__/
 data/*
 !data/skins.db
 test.db
+.DS_Store

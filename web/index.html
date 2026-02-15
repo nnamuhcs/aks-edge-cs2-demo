@@ -13,25 +13,24 @@
         <div>
           <h1>CS2 Skin AI Intelligence</h1>
           <p>AI-powered market intelligence terminal for professional CS2 skin investors.</p>
-          <p class="model-mini">
-            Model: LightGBM/XGBoost-style Factor Ranker + ARIMA/GARCH-inspired Signals
-            <a class="model-link" href="/web/model-math.html" target="_blank" rel="noreferrer">Math & Formula</a>
-          </p>
         </div>
         <div class="actions">
-          <label class="theme-label" for="theme-select">Theme</label>
-          <select id="theme-select" class="theme-select" aria-label="Theme selector">
-            <option value="cobalt">Cobalt AI</option>
-            <option value="mint">Mint Terminal</option>
-            <option value="sunset">Sunset Quant</option>
-            <option value="slate">Slate Pro</option>
-            <option value="graphite">Graphite Neon</option>
-          </select>
           <button id="enrich-images" class="secondary">Refresh Images</button>
           <button id="backfill-history" class="secondary">Backfill History</button>
           <button id="track-now">Sync Live Prices</button>
         </div>
       </header>
+
+      <section class="panel model-panel">
+        <div class="model-panel-main">
+          <small>MODEL STACK</small>
+          <strong>LightGBM/XGBoost-style Factor Ranker + ARIMA/GARCH-inspired Signals</strong>
+        </div>
+        <div class="model-panel-links">
+          <a class="model-link" href="/web/model-math.html" target="_blank" rel="noreferrer">Math & Formula</a>
+          <a class="model-link" href="/web/architecture.html" target="_blank" rel="noreferrer">App & K8s Architecture</a>
+        </div>
+      </section>
 
       <section class="kpis">
         <article class="kpi-card">
@@ -50,6 +49,19 @@
           <small>AI TOP PICKS</small>
           <strong>{{ recommendations|length }}</strong>
         </article>
+      </section>
+
+      <section class="panel simulation-panel">
+        <div class="panel-head">
+          <h2>My Portfolio Performance</h2>
+          <p>
+            Started with <strong>$8,000</strong>, rebalanced daily into AI top 5 picks, with realized portfolio growth.
+          </p>
+        </div>
+        <div id="sim-kpis" class="sim-kpis">
+          <span class="audit-badge">Loading simulation...</span>
+        </div>
+        <canvas id="sim-chart" width="1400" height="380"></canvas>
       </section>
 
       <section class="panel candidates-panel">

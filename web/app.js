@@ -2,12 +2,13 @@ const btn = document.getElementById("track-now");
 const backfillBtn = document.getElementById("backfill-history");
 const rebuildBtn = document.getElementById("rebuild-real");
 const enrichImagesBtn = document.getElementById("enrich-images");
-const themeSelect = document.getElementById("theme-select");
 const output = document.getElementById("track-result");
 const rows = Array.from(document.querySelectorAll(".pick-row"));
 const chartTitle = document.getElementById("chart-title");
 const chartMeta = document.getElementById("chart-meta");
 const canvas = document.getElementById("price-chart");
+const simCanvas = document.getElementById("sim-chart");
+const simKpis = document.getElementById("sim-kpis");
 const infoTriggers = Array.from(document.querySelectorAll(".info-trigger"));
 const headerTooltip = document.getElementById("header-tooltip");
 const chartHover = document.getElementById("chart-hover");
@@ -173,6 +174,141 @@ function drawLineChart(points, highlightPointIndex = null) {
   }
 }
 
+function drawSimChart(points) {
+  if (!simCanvas) return;
+  const ctx = simCanvas.getContext("2d");
+  const width = simCanvas.width;
+  const height = simCanvas.height;
+  ctx.clearRect(0, 0, width, height);
+
+  if (!points || points.length === 0) {
+    ctx.fillStyle = "#a7b3c4";
+    ctx.font = `22px ${CHART_FONT_STACK}`;
+    ctx.fillText("Portfolio history unavailable", 40, 74);
+    return;
+  }
+
+  const padLeft = 86;
+  const padRight = 30;
+  const padTop = 28;
+  const padBottom = 66;
+  const plotW = width - padLeft - padRight;
+  const plotH = height - padTop - padBottom;
+  const stepX = plotW / Math.max(1, points.length - 1);
+
+  const equities = points.flatMap((p) => [Number(p.equity), Number(p.benchmark_equity)]);
+  const min = Math.min(...equities);
+  const max = Math.max(...equities);
+  const span = Math.max(0.01, max - min);
+
+  ctx.strokeStyle = "#364458";
+  ctx.lineWidth = 1;
+  ctx.fillStyle = "#b8c8da";
+  ctx.font = `14px ${CHART_FONT_STACK}`;
+
+  for (let i = 0; i <= 4; i += 1) {
+    const y = padTop + (plotH * i) / 4;
+    ctx.beginPath();
+    ctx.moveTo(padLeft, y);
+    ctx.lineTo(width - padRight, y);
+    ctx.stroke();
+    const v = max - (span * i) / 4;
+    ctx.fillText(`$${v.toFixed(0)}`, 10, y + 5);
+  }
+
+  const labels = [0, Math.floor((points.length - 1) / 2), points.length - 1];
+  const drawn = new Set();
+  labels.forEach((idx) => {
+    if (idx < 0 || drawn.has(idx)) return;
+    drawn.add(idx);
+    const x = padLeft + stepX * idx;
+    const label = points[idx].date;
+    const w = ctx.measureText(label).width;
+    ctx.fillText(label, Math.max(padLeft, Math.min(x - w / 2, width - padRight - w)), height - 36);
+  });
+
+  const drawSeries = (color, getY) => {
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    points.forEach((p, i) => {
+      const x = padLeft + stepX * i;
+      const y = getY(p);
+      if (i === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    });
+    ctx.stroke();
+  };
+
+  const yAi = (p) => padTop + ((max - Number(p.equity)) / span) * plotH;
+  const yBench = (p) => padTop + ((max - Number(p.benchmark_equity)) / span) * plotH;
+  const aiUp = Number(points[points.length - 1].equity) >= Number(points[0].equity);
+  const aiColor = aiUp ? "#31e3a5" : "#ff7d92";
+  drawSeries(aiColor, yAi);
+  drawSeries("#8fa3bf", yBench);
+
+  const endX = padLeft + stepX * (points.length - 1);
+  const aiEndY = yAi(points[points.length - 1]);
+  const benchEndY = yBench(points[points.length - 1]);
+  ctx.fillStyle = aiColor;
+  ctx.beginPath();
+  ctx.arc(endX, aiEndY, 5, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = "#8fa3bf";
+  ctx.beginPath();
+  ctx.arc(endX, benchEndY, 5, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.fillStyle = "#d7e2f0";
+  ctx.font = `13px ${CHART_FONT_STACK}`;
+  ctx.fillText("Benchmark", padLeft + 6, padTop + 14);
+  ctx.fillStyle = aiColor;
+  ctx.fillText("My Portfolio", padLeft + 96, padTop + 14);
+}
+
+async function loadSimulation() {
+  if (!simKpis) return;
+  try {
+    const res = await fetch("/simulation/ai-portfolio?initial_capital=8000&top_n=5");
+    if (!res.ok) throw new Error("simulation unavailable");
+    const sim = await res.json();
+    const pnl = Number(sim.ending_capital) - Number(sim.initial_capital);
+    const winning = pnl >= 0;
+    const benchmarkPnl = Number(sim.benchmark_ending_capital) - Number(sim.initial_capital);
+    const benchmarkWinning = benchmarkPnl >= 0;
+    simKpis.innerHTML = "";
+    [
+      `My Portfolio: ${winning ? "WINNING" : "LOSING"}`,
+      `Benchmark: ${benchmarkWinning ? "WINNING" : "LOSING"}`,
+      `Start: $${Number(sim.initial_capital).toFixed(2)}`,
+      `My Portfolio: $${Number(sim.ending_capital).toFixed(2)}`,
+      `${winning ? "Profit" : "Loss"}: ${winning ? "+" : "-"}$${Math.abs(pnl).toFixed(2)}`,
+      `Gain/Loss %: ${Number(sim.total_return_pct).toFixed(2)}%`,
+      `Benchmark Value: $${Number(sim.benchmark_ending_capital).toFixed(2)}`,
+      `${benchmarkWinning ? "Benchmark Profit" : "Benchmark Loss"}: ${benchmarkWinning ? "+" : "-"}$${Math.abs(benchmarkPnl).toFixed(2)}`,
+      `Benchmark Gain/Loss %: ${Number(sim.benchmark_return_pct).toFixed(2)}%`,
+      `Days Traded: ${sim.days_traded}`,
+      `Win/Loss Days: ${sim.win_days}/${sim.loss_days}`,
+      `Max Drawdown: ${Number(sim.max_drawdown_pct).toFixed(2)}%`,
+    ].forEach((t, i) => {
+      const span = document.createElement("span");
+      span.className = "audit-badge";
+      if (i === 0 || i === 3 || i === 4 || i === 5) {
+        span.classList.add(winning ? "positive" : "negative");
+      }
+      if (i === 1 || i === 6 || i === 7 || i === 8) {
+        span.classList.add(benchmarkWinning ? "positive" : "negative");
+      }
+      span.textContent = t;
+      simKpis.appendChild(span);
+    });
+    drawSimChart(sim.points || []);
+  } catch {
+    simKpis.innerHTML = '<span class="audit-badge">Need more history to display portfolio performance.</span>';
+    drawSimChart([]);
+  }
+}
+
 function canvasMouseToLocal(event) {
   const rect = canvas.getBoundingClientRect();
   return {
@@ -296,19 +432,7 @@ async function loadAudit() {
   }
 }
 
-function applyTheme(themeName) {
-  const themes = ["cobalt", "mint", "sunset", "slate", "graphite"];
-  const theme = themes.includes(themeName) ? themeName : "cobalt";
-  document.documentElement.setAttribute("data-theme", theme);
-  if (themeSelect) themeSelect.value = theme;
-  localStorage.setItem("cs2_skin_ai_theme", theme);
-}
-
-if (themeSelect) {
-  const savedTheme = localStorage.getItem("cs2_skin_ai_theme") || "cobalt";
-  applyTheme(savedTheme);
-  themeSelect.addEventListener("change", () => applyTheme(themeSelect.value));
-}
+document.documentElement.setAttribute("data-theme", "graphite");
 
 rows.forEach((row) => {
   row.addEventListener("click", () => {
@@ -406,3 +530,4 @@ if (enrichImagesBtn) {
 }
 
 loadAudit();
+loadSimulation();

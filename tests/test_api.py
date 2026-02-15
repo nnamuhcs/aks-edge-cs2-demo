@@ -28,3 +28,12 @@ def test_manual_track_endpoint(client):
     r = client.post("/track")
     assert r.status_code == 200
     assert "created_snapshots" in r.json()
+
+
+def test_ai_portfolio_simulation_endpoint(client):
+    r = client.get("/simulation/ai-portfolio?initial_capital=8000&top_n=5")
+    assert r.status_code == 200
+    data = r.json()
+    assert data["initial_capital"] == 8000.0
+    assert data["days_traded"] >= 1
+    assert len(data["points"]) >= 1

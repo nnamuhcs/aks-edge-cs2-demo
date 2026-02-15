@@ -10,6 +10,12 @@ Professional CS2 skin investment intelligence app that runs locally and in local
 - Explains why each top candidate was selected vs non-top candidates.
 - Shows a tracked universe of 25 skins with strategy rationale (thesis) and images.
 
+## Preloaded Demo Data (Included in Repo)
+- `data/skins.db` is committed with current snapshots/history and image URLs.
+- Docker image embeds a seed DB at `/app/seed/skins.db`.
+- On startup, if `sqlite` DB file is missing, app auto-copies seed DB, so first deploy already has data before clicking sync/backfill/image refresh.
+- Missing external image metadata is pre-filled with `/web/placeholder.svg` so every tracked/recommended row has a picture.
+
 ## Architecture
 - `FastAPI` backend + dashboard UI.
 - `APScheduler` daily sync.

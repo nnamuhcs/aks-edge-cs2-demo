@@ -44,3 +44,24 @@ class RecommendationRead(BaseModel):
     rank: int
     total_candidates: int
     reason: str
+
+
+class PortfolioSimPointRead(BaseModel):
+    date: date
+    equity: float
+    day_return_pct: float
+    benchmark_equity: float
+
+
+class PortfolioSimRead(BaseModel):
+    initial_capital: float
+    ending_capital: float
+    total_return_pct: float
+    benchmark_ending_capital: float
+    benchmark_return_pct: float
+    days_traded: int
+    win_days: int
+    loss_days: int
+    max_drawdown_pct: float
+    cagr_pct: float
+    points: list[PortfolioSimPointRead]

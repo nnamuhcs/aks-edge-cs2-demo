@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>App & K8s Architecture - CS2 Skin AI Intelligence</title>
+    <link rel="stylesheet" href="/web/styles.css" />
+  </head>
+  <body>
+    <div class="bg-grid"></div>
+    <main class="terminal">
+      <header class="topbar">
+        <div>
+          <h1>App & Kubernetes Architecture</h1>
+          <p>CS2 Skin AI Intelligence deployment topology and data flow for demo presentation.</p>
+        </div>
+        <div class="actions">
+          <a class="button-link" href="/">Back to Dashboard</a>
+        </div>
+      </header>
+
+      <section class="panel architecture-panel">
+        <div class="panel-head">
+          <h2>Component Overview</h2>
+        </div>
+        <div class="arch-grid">
+          <article class="arch-card">
+            <h3>User Layer</h3>
+            <p>Browser reaches app via `kubectl port-forward svc/cs2-skin-ai 8000:80`.</p>
+          </article>
+          <article class="arch-card">
+            <h3>Kubernetes Layer</h3>
+            <p>One `Deployment`, one `Pod`, one `ClusterIP Service`, one `ConfigMap`, optional `PVC`.</p>
+          </article>
+          <article class="arch-card">
+            <h3>Application Layer</h3>
+            <p>FastAPI API + APScheduler + Recommendation Engine running in a single container.</p>
+          </article>
+          <article class="arch-card">
+            <h3>Data Layer</h3>
+            <p>SQLite database at `/data/skins.db`; persisted by PVC or ephemeral in no-PV mode.</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="panel architecture-panel">
+        <div class="panel-head">
+          <h2>K8s Container App Architecture</h2>
+        </div>
+        <div class="kube-clean">
+          <article class="kube-clean-card">
+            <h3>K8s Controllers</h3>
+            <ul>
+              <li><img src="/web/icons/k8s/deploy.svg" alt="" />Deployment</li>
+              <li><img src="/web/icons/k8s/replicaset.svg" alt="" />ReplicaSet</li>
+              <li><img src="/web/icons/k8s/pod.svg" alt="" />Pod</li>
+            </ul>
+          </article>
+          <article class="kube-clean-card">
+            <h3>Configuration</h3>
+            <ul>
+              <li><img src="/web/icons/k8s/configmap.svg" alt="" />ConfigMap</li>
+              <li><img src="/web/icons/k8s/secret.svg" alt="" />Secret</li>
+            </ul>
+          </article>
+          <article class="kube-clean-card">
+            <h3>Network / Exposition</h3>
+            <ul>
+              <li><img src="/web/icons/k8s/ingress.svg" alt="" />Ingress (optional)</li>
+              <li><img src="/web/icons/k8s/service.svg" alt="" />Service (ClusterIP)</li>
+              <li><img src="/web/icons/k8s/endpoint.svg" alt="" />Endpoint / Port-Forward</li>
+            </ul>
+          </article>
+          <article class="kube-clean-card">
+            <h3>Workload + App Core</h3>
+            <ul>
+              <li><img src="/web/icons/k8s/pod.svg" alt="" />Pod (cs2-skin-ai)</li>
+              <li><img src="/web/icons/k8s/job.svg" alt="" />APScheduler (daily job)</li>
+              <li><span class="chip">FastAPI</span> /recommendations /history /simulation</li>
+              <li><span class="chip">AI Engine</span> Momentum + Mean-Reversion + Risk</li>
+            </ul>
+          </article>
+          <article class="kube-clean-card">
+            <h3>Storage</h3>
+            <ul>
+              <li><img src="/web/icons/k8s/pv.svg" alt="" />PersistentVolume</li>
+              <li><img src="/web/icons/k8s/pvc.svg" alt="" />PVC (or ephemeral no-PV mode)</li>
+              <li><img src="/web/icons/k8s/storageclass.svg" alt="" />StorageClass</li>
+              <li><span class="chip">DB</span> SQLite /data/skins.db</li>
+            </ul>
+          </article>
+          <article class="kube-clean-card">
+            <h3>External</h3>
+            <ul>
+              <li><span class="chip">Market</span> Steam Market API</li>
+              <li><span class="chip">User</span> Browser (localhost:8000)</li>
+            </ul>
+          </article>
+          <article class="kube-clean-card kube-links-integrated">
+            <h3>Flow Links</h3>
+            <div class="flow-visual">
+              <div class="flow-row">
+                <span class="flow-node">Deployment</span>
+                <span class="flow-arrow">→</span>
+                <span class="flow-node">ReplicaSet</span>
+                <span class="flow-arrow">→</span>
+                <span class="flow-node">Pod</span>
+              </div>
+              <div class="flow-row">
+                <span class="flow-node">ConfigMap / Secret</span>
+                <span class="flow-arrow">→</span>
+                <span class="flow-node">Pod</span>
+                <span class="flow-arrow">→</span>
+                <span class="flow-node">FastAPI</span>
+              </div>
+              <div class="flow-row">
+                <span class="flow-node">Service / Endpoint</span>
+                <span class="flow-arrow">→</span>
+                <span class="flow-node">Pod</span>
+                <span class="flow-arrow">→</span>
+                <span class="flow-node">API Response</span>
+              </div>
+              <div class="flow-row">
+                <span class="flow-node">Pod</span>
+                <span class="flow-arrow">→</span>
+                <span class="flow-node">SQLite</span>
+                <span class="flow-arrow">→</span>
+                <span class="flow-node">PVC / PV</span>
+              </div>
+              <div class="flow-row">
+                <span class="flow-node">Scheduler</span>
+                <span class="flow-arrow">→</span>
+                <span class="flow-node">Steam Market API</span>
+                <span class="flow-arrow">→</span>
+                <span class="flow-node">Price Snapshots</span>
+              </div>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <section class="panel architecture-panel">
+        <div class="panel-head">
+          <h2>Runtime Footprint</h2>
+        </div>
+        <div class="arch-grid">
+          <article class="arch-card">
+            <h3>Default (PVC)</h3>
+            <p>`Deployment:1`, `Pod:1`, `Service:1`, `ConfigMap:1`, `PVC:1`</p>
+          </article>
+          <article class="arch-card">
+            <h3>No-PV Mode</h3>
+            <p>`Deployment:1`, `Pod:1`, `Service:1`, `ConfigMap:1` (no persistent storage)</p>
+          </article>
+          <article class="arch-card">
+            <h3>Verification</h3>
+            <p>`kubectl get deploy,pod,svc,cm,pvc` and `kubectl logs deploy/cs2-skin-ai`</p>
+          </article>
+          <article class="arch-card">
+            <h3>Demo Message</h3>
+            <p>AI recommendations + daily tracking + portfolio analytics in one Kubernetes workload.</p>
+          </article>
+        </div>
+      </section>
+
+      <footer class="site-footer">
+        <p><strong>Schumann</strong> | AI & Kubernetes Demo | CS2 Skin AI Intelligence</p>
+      </footer>
+    </main>
+  </body>
+</html>
