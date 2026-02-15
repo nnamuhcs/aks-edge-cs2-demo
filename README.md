@@ -43,14 +43,35 @@ Open [http://localhost:8000](http://localhost:8000)
 - `GET /audit/tracked-universe` - why these 25 skins are tracked
 
 ## Local K8s (PVC, Persistent)
+Option A (`.sh`):
 ```bash
 bash scripts/deploy_local_k8s.sh
 kubectl port-forward svc/cs2-skin-ai 8000:80
 ```
 
+Option B (`kubectl apply`):
+```bash
+kubectl apply -f k8s/pvc.yaml
+kubectl apply -f k8s/configmap.yaml
+kubectl apply -f k8s/deployment.yaml
+kubectl apply -f k8s/service.yaml
+kubectl rollout status deployment/cs2-skin-ai
+kubectl port-forward svc/cs2-skin-ai 8000:80
+```
+
 ## Local K8s (No-PV, Ephemeral)
+Option A (`.sh`):
 ```bash
 bash scripts/deploy_local_k8s.sh no-pv
+kubectl port-forward svc/cs2-skin-ai 8000:80
+```
+
+Option B (`kubectl apply`):
+```bash
+kubectl apply -f k8s/configmap.yaml
+kubectl apply -f k8s/deployment-no-pv.yaml
+kubectl apply -f k8s/service.yaml
+kubectl rollout status deployment/cs2-skin-ai
 kubectl port-forward svc/cs2-skin-ai 8000:80
 ```
 
