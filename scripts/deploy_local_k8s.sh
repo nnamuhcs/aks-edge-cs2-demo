@@ -46,4 +46,6 @@ fi
 echo "Waiting for deployment rollout..."
 kubectl rollout status deployment/cs2-skin-ai --timeout=120s
 
-echo "Deployment ready (${MODE}). Port-forward with: kubectl port-forward svc/cs2-skin-ai 8000:80"
+echo "Deployment ready (${MODE})."
+echo "NodePort access: http://localhost:30080 (or http://<node-ip>:30080)"
+echo "Fallback port-forward: kubectl port-forward svc/cs2-skin-ai 8000:80"

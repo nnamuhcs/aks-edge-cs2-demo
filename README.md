@@ -52,6 +52,10 @@ Open [http://localhost:8000](http://localhost:8000)
 Option A (`.sh`):
 ```bash
 bash scripts/deploy_local_k8s.sh
+# Preferred (NodePort)
+open http://localhost:30080
+
+# Fallback
 kubectl port-forward svc/cs2-skin-ai 8000:80
 ```
 
@@ -62,6 +66,10 @@ kubectl apply -f k8s/configmap.yaml
 kubectl apply -f k8s/deployment.yaml
 kubectl apply -f k8s/service.yaml
 kubectl rollout status deployment/cs2-skin-ai
+# Preferred (NodePort)
+open http://localhost:30080
+
+# Fallback
 kubectl port-forward svc/cs2-skin-ai 8000:80
 ```
 
@@ -69,6 +77,10 @@ kubectl port-forward svc/cs2-skin-ai 8000:80
 Option A (`.sh`):
 ```bash
 bash scripts/deploy_local_k8s.sh no-pv
+# Preferred (NodePort)
+open http://localhost:30080
+
+# Fallback
 kubectl port-forward svc/cs2-skin-ai 8000:80
 ```
 
@@ -78,6 +90,10 @@ kubectl apply -f k8s/configmap.yaml
 kubectl apply -f k8s/deployment-no-pv.yaml
 kubectl apply -f k8s/service.yaml
 kubectl rollout status deployment/cs2-skin-ai
+# Preferred (NodePort)
+open http://localhost:30080
+
+# Fallback
 kubectl port-forward svc/cs2-skin-ai 8000:80
 ```
 
