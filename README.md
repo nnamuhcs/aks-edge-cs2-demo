@@ -48,6 +48,16 @@ bash scripts/deploy_local_k8s.sh
 kubectl port-forward svc/cs2-skin-ai 8000:80
 ```
 
+## Architecture Doc (Slides)
+- `/Users/verve/Documents/demo-cs2/docs/ARCHITECTURE.md`
+
+## Optional No-PV Mode (Ephemeral Data)
+```bash
+kubectl apply -f k8s/configmap.yaml
+kubectl apply -f k8s/deployment-no-pv.yaml
+kubectl apply -f k8s/service.yaml
+```
+
 ## Providers / Env
 Default live mode:
 - `PROVIDER_NAME=steam`
