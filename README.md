@@ -6,7 +6,7 @@ Professional CS2 skin investment intelligence app that runs locally and in local
 - Pulls real-time CS2 prices from Steam Community Market (`priceoverview`).
 - Backfills historical trend data from Steam listing history (`line1`) for real day-by-day charts.
 - Stores all snapshots in SQLite with source metadata for auditability.
-- Ranks top 5 candidates with AI-style scoring (momentum, volatility, liquidity, rarity).
+- Ranks top 5 candidates with AI-driven scoring (momentum, volatility, liquidity, rarity).
 - Explains why each top candidate was selected vs non-top candidates.
 - Shows a tracked universe of 25 skins with strategy rationale (thesis) and images.
 
