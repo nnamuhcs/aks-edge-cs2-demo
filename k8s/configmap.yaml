@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cs2-skin-ai-config
+data:
+  PROVIDER_NAME: "steam"
+  TRACK_INTERVAL_HOURS: "24"
+  TRACKER_SEED_DAYS: "30"
+  DATABASE_URL: "sqlite:////data/skins.db"
+  STEAM_CURRENCY: "1"

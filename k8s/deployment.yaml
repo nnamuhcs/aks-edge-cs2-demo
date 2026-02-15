@@ -1,0 +1,42 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cs2-skin-ai
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: cs2-skin-ai
+  template:
+    metadata:
+      labels:
+        app: cs2-skin-ai
+    spec:
+      containers:
+        - name: api
+          image: cs2-skin-ai:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8000
+          envFrom:
+            - configMapRef:
+                name: cs2-skin-ai-config
+          volumeMounts:
+            - mountPath: /data
+              name: app-data
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 15
+            periodSeconds: 15
+      volumes:
+        - name: app-data
+          persistentVolumeClaim:
+            claimName: cs2-skin-ai-pvc

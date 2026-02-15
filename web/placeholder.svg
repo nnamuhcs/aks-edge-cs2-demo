@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="192" viewBox="0 0 256 192">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#12304b"/>
+      <stop offset="1" stop-color="#0a1727"/>
+    </linearGradient>
+  </defs>
+  <rect width="256" height="192" fill="url(#g)"/>
+  <g fill="#7dd3fc" opacity="0.9">
+    <rect x="26" y="86" width="116" height="10" rx="5"/>
+    <rect x="122" y="76" width="68" height="10" rx="5"/>
+    <circle cx="196" cy="81" r="8"/>
+  </g>
+  <text x="16" y="170" fill="#9fb9d6" font-family="Arial" font-size="14">SkinSight Asset</text>
+</svg>

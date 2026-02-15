@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CS2 Skin AI Intelligence</title>
+    <link rel="stylesheet" href="/web/styles.css" />
+  </head>
+  <body>
+    <div class="bg-grid"></div>
+    <main class="terminal">
+      <header class="topbar">
+        <div>
+          <h1>CS2 Skin AI Intelligence</h1>
+          <p>AI-powered market intelligence terminal for professional CS2 skin investors.</p>
+          <p class="model-mini">
+            Model: LightGBM/XGBoost-style Factor Ranker + ARIMA/GARCH-inspired Signals
+            <a class="model-link" href="/web/model-math.html" target="_blank" rel="noreferrer">Math & Formula</a>
+          </p>
+        </div>
+        <div class="actions">
+          <label class="theme-label" for="theme-select">Theme</label>
+          <select id="theme-select" class="theme-select" aria-label="Theme selector">
+            <option value="cobalt">Cobalt AI</option>
+            <option value="mint">Mint Terminal</option>
+            <option value="sunset">Sunset Quant</option>
+            <option value="slate">Slate Pro</option>
+            <option value="graphite">Graphite Neon</option>
+          </select>
+          <button id="enrich-images" class="secondary">Refresh Images</button>
+          <button id="backfill-history" class="secondary">Backfill History</button>
+          <button id="track-now">Sync Live Prices</button>
+        </div>
+      </header>
+
+      <section class="kpis">
+        <article class="kpi-card">
+          <small>DATE</small>
+          <strong>{{ today }}</strong>
+        </article>
+        <article class="kpi-card">
+          <small>TRACKED SKINS</small>
+          <strong>{{ total_skins }}</strong>
+        </article>
+        <article class="kpi-card">
+          <small>PRICE SNAPSHOTS</small>
+          <strong>{{ total_snapshots }}</strong>
+        </article>
+        <article class="kpi-card accent">
+          <small>AI TOP PICKS</small>
+          <strong>{{ recommendations|length }}</strong>
+        </article>
+      </section>
+
+      <section class="panel candidates-panel">
+        <div class="panel-head">
+          <h2>AI Top 5 Investment Candidates</h2>
+          <p id="track-result"></p>
+        </div>
+        {% if recommendations %}
+        <div class="table-scroll">
+          <table class="candidates-table">
+            <thead>
+              <tr>
+                <th>Rank</th>
+                <th>Skin</th>
+                <th>
+                  <span class="th-inline">
+                    <span>Score</span>
+                    <button
+                      type="button"
+                      class="info-trigger"
+                      data-tip="Composite AI score from momentum, volatility stability, liquidity, and rarity weighting."
+                      aria-label="Score explanation"
+                    >i</button>
+                  </span>
+                </th>
+                <th>Price</th>
+                <th>Momentum</th>
+                <th>
+                  <span class="th-inline">
+                    <span>Volatility</span>
+                    <button
+                      type="button"
+                      class="info-trigger"
+                      data-tip="7-day relative price fluctuation. Lower means more stable price behavior."
+                      aria-label="Volatility explanation"
+                    >i</button>
+                  </span>
+                </th>
+                <th>
+                  <span class="th-inline">
+                    <span>Liquidity</span>
+                    <button
+                      type="button"
+                      class="info-trigger"
+                      data-tip="Market activity proxy from recent volume. Higher means easier buy/sell execution."
+                      aria-label="Liquidity explanation"
+                    >i</button>
+                  </span>
+                </th>
+                <th>Why AI Picked It</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for r in recommendations %}
+              <tr class="pick-row" data-skin-id="{{ r.skin_id }}" data-skin-name="{{ r.skin_name }}">
+                <td><span class="rank-badge">{{ loop.index }}</span></td>
+                <td class="skin-cell">
+                  <img src="{{ r.skin_image_url or '/web/placeholder.svg' }}" alt="{{ r.skin_name }}" loading="lazy" />
+                  <div class="name">{{ r.skin_name }}</div>
+                </td>
+                <td>{{ r.score }}</td>
+                <td>${{ r.latest_price_usd }}</td>
+                <td class="{% if r.momentum_7d_pct >= 0 %}up{% else %}down{% endif %}">{{ r.momentum_7d_pct }}%</td>
+                <td>{{ r.volatility_7d_pct }}%</td>
+                <td>{{ r.liquidity_score }}</td>
+                <td class="reason">{{ r.reason }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% else %}
+        <p class="empty">No recommendations yet. Trigger a sync to ingest market data.</p>
+        {% endif %}
+      </section>
+
+      <section class="panel chart-panel">
+        <div class="panel-head">
+          <h2 id="chart-title">Price Trend (Full History)</h2>
+        </div>
+        <p id="chart-meta" class="chart-meta">Select a candidate to view full history.</p>
+        <canvas id="price-chart" width="1400" height="540"></canvas>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head">
+          <h2>25 Tracked CS2 Skins</h2>
+          <p>Curated by liquidity, recognition, category coverage, and tradable volatility.</p>
+        </div>
+        <div class="skin-grid">
+          {% for s in tracked_skins %}
+          <article class="skin-card">
+            <img src="{{ s.image_url or '/web/placeholder.svg' }}" alt="{{ s.name }}" loading="lazy" />
+            <h3>{{ s.name }}</h3>
+            <div class="meta">{{ s.category }} | {{ s.rarity }}</div>
+            <p>{{ s.thesis or 'Tracked for market depth and stable liquidity.' }}</p>
+            {% if s.listing_url %}
+            <a href="{{ s.listing_url }}" target="_blank" rel="noreferrer">Steam Link</a>
+            {% endif %}
+          </article>
+          {% endfor %}
+        </div>
+      </section>
+
+      <section class="panel" id="audit-panel">
+        <div class="panel-head">
+          <h2>Data Transparency</h2>
+          <div class="audit-head-actions">
+            <p>Check data sources and snapshot evidence.</p>
+            <button id="rebuild-real" class="secondary">Rebuild Real Dataset</button>
+          </div>
+        </div>
+        <div id="audit-summary" class="audit-summary"></div>
+        <table>
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Skin</th>
+              <th>Price</th>
+              <th>Volume</th>
+              <th>Source</th>
+              <th>Reference</th>
+            </tr>
+          </thead>
+          <tbody id="audit-rows"></tbody>
+        </table>
+      </section>
+
+      <footer class="site-footer">
+        <p><strong>Schumann</strong> | AI & Kubernetes Demo | CS2 Skin AI Intelligence</p>
+      </footer>
+    </main>
+    <div id="header-tooltip" class="header-tooltip" hidden></div>
+    <div id="chart-hover" class="chart-hover" hidden></div>
+
+    <script src="/web/app.js"></script>
+  </body>
+</html>
