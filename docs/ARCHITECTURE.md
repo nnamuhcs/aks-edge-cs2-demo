@@ -17,22 +17,23 @@ No Ingress is created by default. Access is typically via:
 
 ```mermaid
 flowchart LR
-    U[Browser on localhost:8000] -->|port-forward| SVC[Service cs2-skin-ai:80]
-    SVC --> POD[Pod cs2-skin-ai]
+    U["Browser localhost:8000"] -->|port-forward| SVC["Service cs2-skin-ai:80"]
+    SVC --> POD["Pod cs2-skin-ai"]
 
-    subgraph PODC[Container: api (FastAPI + APScheduler)]
-      API[FastAPI App]
-      JOB[Daily Tracker Job]
-      REC[Recommendation Engine\nMomentum + Mean-Reversion + Risk]
-      DB[(SQLite /data/skins.db)]
+    subgraph PODC["Container api - FastAPI + APScheduler"]
+      API["FastAPI App"]
+      JOB["Daily Tracker Job"]
+      REC["Recommendation Engine<br/>Momentum + Mean-Reversion + Risk"]
+      DB[("SQLite /data/skins.db")]
+      STEAM["Steam Community Market API"]
       API --> REC
       API --> DB
       JOB --> DB
-      JOB --> STEAM[Steam Community Market API]
+      JOB --> STEAM
     end
 
-    POD --> PVC[PVC cs2-skin-ai-pvc]
-    PVC --> PV[Dynamic PV from local storage class]
+    POD --> PVC["PVC cs2-skin-ai-pvc"]
+    PVC --> PV["Dynamic PV from local storage class"]
 ```
 
 ## Request and Data Flow
