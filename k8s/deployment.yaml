@@ -12,6 +12,7 @@ spec:
       labels:
         app: cs2-skin-ai
     spec:
+      serviceAccountName: cs2-skin-ai
       containers:
         - name: api
           image: cs2-skin-ai:latest

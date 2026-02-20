@@ -309,6 +309,35 @@ def audit_tracked_universe(db: Session = Depends(get_db)) -> dict[str, object]:
 
 # ── K8s Monitoring ─────────────────────────────────────────
 
+import json
+import os
+import ssl
+
+_K8S_HOST = os.environ.get("KUBERNETES_SERVICE_HOST", "")
+_K8S_PORT = os.environ.get("KUBERNETES_SERVICE_PORT", "443")
+_K8S_TOKEN_PATH = "/var/run/secrets/kubernetes.io/serviceaccount/token"
+_K8S_CA_PATH = "/var/run/secrets/kubernetes.io/serviceaccount/ca.crt"
+
+
+def _k8s_api_get(path: str) -> dict | list | None:
+    """Call Kubernetes API from inside a pod using the mounted service account."""
+    try:
+        import httpx as _httpx
+        token = Path(_K8S_TOKEN_PATH).read_text().strip()
+        base = f"https://{_K8S_HOST}:{_K8S_PORT}"
+        resp = _httpx.get(
+            f"{base}{path}",
+            headers={"Authorization": f"Bearer {token}"},
+            verify=_K8S_CA_PATH,
+            timeout=5,
+        )
+        if resp.status_code == 200:
+            return resp.json()
+    except Exception:
+        pass
+    return None
+
+
 def _run_kubectl(args: list[str], timeout: int = 5) -> str:
     try:
         result = subprocess.run(
@@ -320,25 +349,119 @@ def _run_kubectl(args: list[str], timeout: int = 5) -> str:
         return ""
 
 
-def _parse_kubectl_lines(raw: str) -> list[dict[str, str]]:
-    if not raw:
-        return []
-    lines = raw.strip().splitlines()
-    if len(lines) < 2:
-        return []
-    headers = lines[0].split()
-    rows = []
-    for line in lines[1:]:
-        parts = line.split(None, len(headers) - 1)
-        row = {}
-        for i, h in enumerate(headers):
-            row[h] = parts[i] if i < len(parts) else ""
-        rows.append(row)
-    return rows
+def _age_str(ts: str) -> str:
+    """Convert ISO timestamp to a human-readable age string."""
+    from datetime import datetime, timezone
+    try:
+        created = datetime.fromisoformat(ts.replace("Z", "+00:00"))
+        delta = datetime.now(timezone.utc) - created
+        secs = int(delta.total_seconds())
+        if secs < 60:
+            return f"{secs}s"
+        if secs < 3600:
+            return f"{secs // 60}m"
+        if secs < 86400:
+            return f"{secs // 3600}h"
+        return f"{secs // 86400}d"
+    except Exception:
+        return ts
 
 
-@app.get("/k8s/info")
-def k8s_info() -> dict[str, object]:
+def _k8s_info_from_api() -> dict[str, object] | None:
+    """Fetch cluster info via the Kubernetes REST API (in-cluster)."""
+    if not _K8S_HOST:
+        return None
+
+    pods_data = _k8s_api_get("/api/v1/pods")
+    svc_data = _k8s_api_get("/api/v1/services")
+    deploy_data = _k8s_api_get("/apis/apps/v1/deployments")
+    node_data = _k8s_api_get("/api/v1/nodes")
+    ns_data = _k8s_api_get("/api/v1/namespaces")
+
+    if pods_data is None:
+        return None
+
+    pods = []
+    for item in (pods_data.get("items") or []):
+        meta = item.get("metadata", {})
+        status = item.get("status", {})
+        cs = (status.get("containerStatuses") or [{}])[0] if status.get("containerStatuses") else {}
+        ready_conds = [c for c in (status.get("conditions") or []) if c.get("type") == "Ready"]
+        ready_val = ready_conds[0].get("status", "False") if ready_conds else "False"
+        pods.append({
+            "name": meta.get("name", ""),
+            "namespace": meta.get("namespace", ""),
+            "status": status.get("phase", "Unknown"),
+            "ready": ready_val,
+            "restarts": str(cs.get("restartCount", 0)),
+            "node": item.get("spec", {}).get("nodeName", ""),
+            "age": _age_str(meta.get("creationTimestamp", "")),
+        })
+
+    svcs = []
+    for item in ((svc_data or {}).get("items") or []):
+        meta = item.get("metadata", {})
+        spec = item.get("spec", {})
+        ports = ",".join(str(p.get("port", "")) for p in (spec.get("ports") or []))
+        svcs.append({
+            "name": meta.get("name", ""),
+            "namespace": meta.get("namespace", ""),
+            "type": spec.get("type", ""),
+            "cluster_ip": spec.get("clusterIP", ""),
+            "ports": ports,
+            "age": _age_str(meta.get("creationTimestamp", "")),
+        })
+
+    deploys = []
+    for item in ((deploy_data or {}).get("items") or []):
+        meta = item.get("metadata", {})
+        spec = item.get("spec", {})
+        st = item.get("status", {})
+        desired = spec.get("replicas", 1)
+        ready = st.get("readyReplicas", 0) or 0
+        deploys.append({
+            "name": meta.get("name", ""),
+            "namespace": meta.get("namespace", ""),
+            "ready": f"{ready}/{desired}",
+            "up_to_date": str(st.get("updatedReplicas", 0) or 0),
+            "available": str(st.get("availableReplicas", 0) or 0),
+            "desired": str(desired),
+            "age": _age_str(meta.get("creationTimestamp", "")),
+        })
+
+    nodes = []
+    for item in ((node_data or {}).get("items") or []):
+        meta = item.get("metadata", {})
+        ni = item.get("status", {}).get("nodeInfo", {})
+        labels = meta.get("labels", {})
+        conds = item.get("status", {}).get("conditions", [])
+        ready_conds = [c for c in conds if c.get("type") == "Ready"]
+        status_val = "Ready" if ready_conds and ready_conds[0].get("status") == "True" else "NotReady"
+        role = "control-plane" if "node-role.kubernetes.io/control-plane" in labels else "worker"
+        nodes.append({
+            "name": meta.get("name", ""),
+            "status": status_val,
+            "roles": role,
+            "version": ni.get("kubeletVersion", ""),
+            "os": ni.get("osImage", ""),
+            "arch": ni.get("architecture", ""),
+            "age": _age_str(meta.get("creationTimestamp", "")),
+        })
+
+    nses = []
+    for item in ((ns_data or {}).get("items") or []):
+        meta = item.get("metadata", {})
+        nses.append({
+            "name": meta.get("name", ""),
+            "status": item.get("status", {}).get("phase", ""),
+            "age": _age_str(meta.get("creationTimestamp", "")),
+        })
+
+    return {"pods": pods, "services": svcs, "deployments": deploys, "nodes": nodes, "namespaces": nses}
+
+
+def _k8s_info_from_kubectl() -> dict[str, object]:
+    """Fallback: fetch cluster info via kubectl CLI."""
     pods_raw = _run_kubectl(["get", "pods", "--all-namespaces", "--no-headers",
                              "-o", "custom-columns=NAME:.metadata.name,NAMESPACE:.metadata.namespace,"
                              "STATUS:.status.phase,READY:.status.conditions[?(@.type=='Ready')].status,"
@@ -348,10 +471,9 @@ def k8s_info() -> dict[str, object]:
     for line in (pods_raw or "").strip().splitlines():
         parts = line.split(None, 6)
         if len(parts) >= 7:
-            age_raw = parts[6]
             pods.append({
                 "name": parts[0], "namespace": parts[1], "status": parts[2],
-                "ready": parts[3], "restarts": parts[4], "node": parts[5], "age": age_raw,
+                "ready": parts[3], "restarts": parts[4], "node": parts[5], "age": _age_str(parts[6]),
             })
 
     svc_raw = _run_kubectl(["get", "svc", "--all-namespaces", "--no-headers",
@@ -364,7 +486,7 @@ def k8s_info() -> dict[str, object]:
         if len(parts) >= 6:
             svcs.append({
                 "name": parts[0], "namespace": parts[1], "type": parts[2],
-                "cluster_ip": parts[3], "ports": parts[4], "age": parts[5],
+                "cluster_ip": parts[3], "ports": parts[4], "age": _age_str(parts[5]),
             })
 
     deploy_raw = _run_kubectl(["get", "deployments", "--all-namespaces", "--no-headers",
@@ -384,7 +506,7 @@ def k8s_info() -> dict[str, object]:
                 "up_to_date": parts[3] if parts[3] != "<none>" else "0",
                 "available": parts[4] if parts[4] != "<none>" else "0",
                 "desired": desired_count,
-                "age": parts[6],
+                "age": _age_str(parts[6]),
             })
 
     node_raw = _run_kubectl(["get", "nodes", "--no-headers",
@@ -402,7 +524,7 @@ def k8s_info() -> dict[str, object]:
             role_val = "control-plane" if parts[2] != "<none>" else "worker"
             nodes.append({
                 "name": parts[0], "status": status_val, "roles": role_val,
-                "version": parts[3], "os": parts[4], "arch": parts[5], "age": parts[6],
+                "version": parts[3], "os": parts[4], "arch": parts[5], "age": _age_str(parts[6]),
             })
 
     ns_raw = _run_kubectl(["get", "namespaces", "--no-headers",
@@ -412,12 +534,15 @@ def k8s_info() -> dict[str, object]:
     for line in (ns_raw or "").strip().splitlines():
         parts = line.split(None, 2)
         if len(parts) >= 3:
-            nses.append({"name": parts[0], "status": parts[1], "age": parts[2]})
+            nses.append({"name": parts[0], "status": parts[1], "age": _age_str(parts[2])})
 
-    return {
-        "pods": pods,
-        "services": svcs,
-        "deployments": deploys,
-        "nodes": nodes,
-        "namespaces": nses,
-    }
+    return {"pods": pods, "services": svcs, "deployments": deploys, "nodes": nodes, "namespaces": nses}
+
+
+@app.get("/k8s/info")
+def k8s_info() -> dict[str, object]:
+    # Try in-cluster API first, then kubectl fallback
+    result = _k8s_info_from_api()
+    if result is not None:
+        return result
+    return _k8s_info_from_kubectl()
