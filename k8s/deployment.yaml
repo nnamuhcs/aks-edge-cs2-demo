@@ -15,7 +15,7 @@ spec:
       serviceAccountName: cs2-skin-ai
       containers:
         - name: api
-          image: ghcr.io/nnamuhcs/k8s-cs2-demo:latest
+          image: ghcr.io/nnamuhcs/aks-edge-cs2-demo:latest
           imagePullPolicy: Always
           ports:
             - containerPort: 8000

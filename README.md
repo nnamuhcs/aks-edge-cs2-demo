@@ -36,7 +36,7 @@ kubectl apply -f k8s/deployment.yaml
 kubectl rollout status deployment/cs2-skin-ai
 ```
 
-Image: `ghcr.io/nnamuhcs/k8s-cs2-demo:latest`
+Image: `ghcr.io/nnamuhcs/aks-edge-cs2-demo:latest`
 
 Open [http://localhost:30080](http://localhost:30080) (NodePort) or use `kubectl port-forward svc/cs2-skin-ai 8000:80` as fallback.
 
@@ -68,7 +68,7 @@ Open [http://localhost:8000](http://localhost:8000)
 ## Build & Push Image
 ```bash
 make build          # Build locally
-make push           # Push to ghcr.io/nnamuhcs/k8s-cs2-demo:latest
+make push           # Push to ghcr.io/nnamuhcs/aks-edge-cs2-demo:latest
 ```
 
 Image is also auto-built on push to `main` via GitHub Actions.

@@ -1,6 +1,6 @@
 APP_NAME=cs2-skin-ai
 IMAGE=$(APP_NAME):latest
-REGISTRY_IMAGE=ghcr.io/nnamuhcs/k8s-cs2-demo:latest
+REGISTRY_IMAGE=ghcr.io/nnamuhcs/aks-edge-cs2-demo:latest
 
 .PHONY: install run test build push deploy-k8s
 

@@ -2,7 +2,7 @@
 set -euo pipefail
 
 IMAGE_NAME="cs2-skin-ai:latest"
-REGISTRY_IMAGE="ghcr.io/nnamuhcs/k8s-cs2-demo:latest"
+REGISTRY_IMAGE="ghcr.io/nnamuhcs/aks-edge-cs2-demo:latest"
 MODE="${1:-pv}"
 
 if [[ "${MODE}" != "pv" && "${MODE}" != "no-pv" ]]; then
