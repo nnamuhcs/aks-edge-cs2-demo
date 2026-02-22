@@ -11,10 +11,6 @@ spec:
     metadata:
       labels:
         app: cs2-skin-ai
-      annotations:
-        prometheus.io/scrape: "true"
-        prometheus.io/port: "8000"
-        prometheus.io/path: "/metrics"
     spec:
       serviceAccountName: cs2-skin-ai
       containers:

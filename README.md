@@ -1,6 +1,6 @@
 # CS2 Skin AI Intelligence
 
-Professional CS2 skin investment intelligence app that runs locally and in local Kubernetes.
+Professional CS2 skin investment intelligence app — an AKS Edge Essentials demo.
 
 ## What it does
 - Pulls real-time CS2 prices from Steam Community Market (`priceoverview`).
@@ -73,7 +73,7 @@ make push           # Push to ghcr.io/nnamuhcs/k8s-cs2-demo:latest
 
 Image is also auto-built on push to `main` via GitHub Actions.
 
-## Local K8s (PVC, Persistent)
+## Deploy on AKS Edge (PVC, Persistent)
 Option A (`.sh`):
 ```bash
 bash scripts/deploy_local_k8s.sh
@@ -98,7 +98,7 @@ open http://localhost:30080
 kubectl port-forward svc/cs2-skin-ai 8000:80
 ```
 
-## Local K8s (No-PV, Ephemeral)
+## Deploy on AKS Edge (No-PV, Ephemeral)
 Option A (`.sh`):
 ```bash
 bash scripts/deploy_local_k8s.sh no-pv

@@ -1,7 +1,7 @@
-# CS2 Skin AI Intelligence - Architecture (Local Kubernetes)
+# CS2 Skin AI Intelligence - Architecture (AKS Edge Essentials)
 
 ## Runtime Footprint (Current Manifests)
-When you deploy `k8s/*.yaml` as-is, Kubernetes creates:
+When you deploy `k8s/*.yaml` on AKS Edge Essentials, the cluster creates:
 
 - `1 x Deployment`: `cs2-skin-ai`
 - `1 x Pod` (from Deployment, `replicas: 1`)

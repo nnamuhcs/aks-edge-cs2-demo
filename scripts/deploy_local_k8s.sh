@@ -33,7 +33,7 @@ if command -v kind >/dev/null 2>&1; then
   fi
 fi
 
-echo "Applying Kubernetes manifests (mode=${MODE})..."
+echo "Applying AKS Edge manifests (mode=${MODE})..."
 kubectl apply -f k8s/service.yaml
 kubectl apply -f k8s/configmap.yaml
 
