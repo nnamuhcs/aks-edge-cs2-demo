@@ -2,6 +2,7 @@
 set -euo pipefail
 
 IMAGE_NAME="cs2-skin-ai:latest"
+REGISTRY_IMAGE="ghcr.io/nnamuhcs/k8s-cs2-demo:latest"
 MODE="${1:-pv}"
 
 if [[ "${MODE}" != "pv" && "${MODE}" != "no-pv" ]]; then
@@ -22,7 +23,7 @@ if ! command -v docker >/dev/null 2>&1; then
 fi
 
 echo "Building image ${IMAGE_NAME}..."
-docker build -t "${IMAGE_NAME}" .
+docker build -t "${IMAGE_NAME}" -t "${REGISTRY_IMAGE}" .
 
 if command -v kind >/dev/null 2>&1; then
   cluster_name=$(kind get clusters | head -n 1 || true)

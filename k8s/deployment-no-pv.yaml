@@ -11,11 +11,15 @@ spec:
     metadata:
       labels:
         app: cs2-skin-ai
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8000"
+        prometheus.io/path: "/metrics"
     spec:
       containers:
         - name: api
-          image: cs2-skin-ai:latest
-          imagePullPolicy: IfNotPresent
+          image: ghcr.io/nnamuhcs/k8s-cs2-demo:latest
+          imagePullPolicy: Always
           ports:
             - containerPort: 8000
           envFrom:

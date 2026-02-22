@@ -30,7 +30,10 @@ from app.services.tracker import (
     track_prices_for_date,
 )
 
+from prometheus_fastapi_instrumentator import Instrumentator
+
 app = FastAPI(title=settings.app_name)
+Instrumentator().instrument(app).expose(app)
 
 base_dir = Path(__file__).resolve().parent.parent
 app.mount("/web", StaticFiles(directory=str(base_dir / "web")), name="web")

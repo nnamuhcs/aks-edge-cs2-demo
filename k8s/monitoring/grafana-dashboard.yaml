@@ -1,0 +1,80 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-dashboards-provider
+  namespace: monitoring
+data:
+  dashboards.yaml: |
+    apiVersion: 1
+    providers:
+      - name: 'default'
+        orgId: 1
+        folder: ''
+        type: file
+        options:
+          path: /var/lib/grafana/dashboards
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-dashboard-cs2
+  namespace: monitoring
+data:
+  cs2-dashboard.json: |
+    {
+      "title": "CS2 Skin AI Dashboard",
+      "uid": "cs2-skin-ai",
+      "timezone": "browser",
+      "panels": [
+        {
+          "id": 1,
+          "title": "Request Rate (req/s)",
+          "type": "timeseries",
+          "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0},
+          "datasource": {"type": "prometheus", "uid": "PBFA97CFB590B2093"},
+          "targets": [{"expr": "rate(http_requests_total[1m])", "legendFormat": "{{method}} {{handler}} {{status}}"}]
+        },
+        {
+          "id": 2,
+          "title": "Request Duration (p95)",
+          "type": "timeseries",
+          "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0},
+          "datasource": {"type": "prometheus", "uid": "PBFA97CFB590B2093"},
+          "targets": [{"expr": "histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m]))", "legendFormat": "p95 {{handler}}"}]
+        },
+        {
+          "id": 3,
+          "title": "Requests In Progress",
+          "type": "stat",
+          "gridPos": {"h": 4, "w": 6, "x": 0, "y": 8},
+          "datasource": {"type": "prometheus", "uid": "PBFA97CFB590B2093"},
+          "targets": [{"expr": "http_requests_in_progress", "legendFormat": "in progress"}]
+        },
+        {
+          "id": 4,
+          "title": "Total Requests",
+          "type": "stat",
+          "gridPos": {"h": 4, "w": 6, "x": 6, "y": 8},
+          "datasource": {"type": "prometheus", "uid": "PBFA97CFB590B2093"},
+          "targets": [{"expr": "http_requests_total", "legendFormat": "total"}]
+        },
+        {
+          "id": 5,
+          "title": "Container CPU Usage",
+          "type": "timeseries",
+          "gridPos": {"h": 8, "w": 12, "x": 0, "y": 12},
+          "datasource": {"type": "prometheus", "uid": "PBFA97CFB590B2093"},
+          "targets": [{"expr": "rate(container_cpu_usage_seconds_total{container=\"api\", namespace=\"default\"}[5m])", "legendFormat": "CPU"}]
+        },
+        {
+          "id": 6,
+          "title": "Container Memory Usage",
+          "type": "timeseries",
+          "gridPos": {"h": 8, "w": 12, "x": 12, "y": 12},
+          "datasource": {"type": "prometheus", "uid": "PBFA97CFB590B2093"},
+          "targets": [{"expr": "container_memory_usage_bytes{container=\"api\", namespace=\"default\"}", "legendFormat": "Memory"}]
+        }
+      ],
+      "time": {"from": "now-1h", "to": "now"},
+      "refresh": "10s"
+    }

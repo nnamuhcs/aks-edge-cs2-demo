@@ -1,7 +1,8 @@
 APP_NAME=cs2-skin-ai
 IMAGE=$(APP_NAME):latest
+REGISTRY_IMAGE=ghcr.io/nnamuhcs/k8s-cs2-demo:latest
 
-.PHONY: install run test build deploy-k8s
+.PHONY: install run test build push deploy-k8s
 
 install:
 	python3 -m venv .venv && . .venv/bin/activate && pip install -r requirements-dev.txt
@@ -13,7 +14,10 @@ test:
 	pytest -q
 
 build:
-	docker build -t $(IMAGE) .
+	docker build -t $(IMAGE) -t $(REGISTRY_IMAGE) .
+
+push: build
+	docker push $(REGISTRY_IMAGE)
 
 deploy-k8s:
 	bash scripts/deploy_local_k8s.sh

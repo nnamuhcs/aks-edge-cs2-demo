@@ -23,7 +23,24 @@ Professional CS2 skin investment intelligence app that runs locally and in local
 - Default provider: `steam` (real data).
 - Optional providers: `mock`, `http`.
 
-## Quick Start
+## Quick Deploy (Pre-built Image from GHCR)
+
+No build needed — just `kubectl apply`:
+
+```bash
+kubectl apply -f k8s/rbac.yaml
+kubectl apply -f k8s/configmap.yaml
+kubectl apply -f k8s/service.yaml
+kubectl apply -f k8s/pvc.yaml
+kubectl apply -f k8s/deployment.yaml
+kubectl rollout status deployment/cs2-skin-ai
+```
+
+Image: `ghcr.io/nnamuhcs/k8s-cs2-demo:latest`
+
+Open [http://localhost:30080](http://localhost:30080)
+
+## Quick Start (Local Dev)
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate
@@ -47,6 +64,14 @@ Open [http://localhost:8000](http://localhost:8000)
 - `GET /audit/summary` - counts, date span, source breakdown
 - `GET /audit/snapshots?limit=50` - recent rows with source links
 - `GET /audit/tracked-universe` - why these 25 skins are tracked
+
+## Build & Push Image
+```bash
+make build          # Build locally
+make push           # Push to ghcr.io/nnamuhcs/k8s-cs2-demo:latest
+```
+
+Image is also auto-built on push to `main` via GitHub Actions.
 
 ## Local K8s (PVC, Persistent)
 Option A (`.sh`):
